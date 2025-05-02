@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int               @id @default(autoincrement())
+  email         String            @unique
+  name          String
+  wishlists     Wishlist[]        @relation("OwnedWishlists")
+  shared        WishlistUser[]
+
+  Product Product[]
+}
+
+model Wishlist {
+  id              Int             @id @default(autoincrement())
+  name            String
+  ownerId         Int
+  owner           User            @relation("OwnedWishlists", fields: [ownerId], references: [id])
+  products        Product[]
+  members         WishlistUser[]
+  createdAt       DateTime        @default(now())
+}
+
+model WishlistUser {
+  id              Int         @id @default(autoincrement())
+  user            User        @relation(fields: [userId], references: [id])
+  userId          Int
+  wishlist        Wishlist    @relation(fields: [wishlistId], references: [id])
+  wishlistId      Int
+}
+
+model Product {
+  id              Int         @id @default(autoincrement())
+  name            String
+  imageUrl        String
+  price           Float
+  addedById       Int
+  wishlistId      Int
+  addedBy         User        @relation(fields: [addedById], references: [id])
+  wishlist        Wishlist    @relation(fields: [wishlistId], references: [id])
+  createdAt       DateTime    @default(now())
+}
