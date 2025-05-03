@@ -1,76 +1,25 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Navbar } from './components/Navbar';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { WishlistList } from './pages/WishlistList';
-import { WishlistDetail } from './pages/WishlistDetail';
-import { CreateWishlist } from './pages/CreateWishlist';
-import { SharedWishlists } from './pages/SharedWishlists';
+import { Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import ProtectedRoute from './auth/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import DashboardPage from './pages/DashboardPage';
+import WishlistPage from './pages/WishlistPage';
+import AddWishlistPage from './pages/AddWishlistPage';
+import SharedWishlistsPage from './pages/SharedWishlistsPage';
 
-const queryClient = new QueryClient();
-
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" />;
-};
-
-function App() {
+export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/"
-                element={
-                  <PrivateRoute>
-                    <WishlistList />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/wishlists"
-                element={
-                  <PrivateRoute>
-                    <WishlistList />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/wishlists/new"
-                element={
-                  <PrivateRoute>
-                    <CreateWishlist />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/wishlists/shared"
-                element={
-                  <PrivateRoute>
-                    <SharedWishlists />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/wishlists/:id"
-                element={
-                  <PrivateRoute>
-                    <WishlistDetail />
-                  </PrivateRoute>
-                }
-              />
-            </Routes>
-          </main>
-        </div>
-      </Router>
-    </QueryClientProvider>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/" element={<ProtectedRoute><DashboardPage/></ProtectedRoute>} />
+        <Route path="/wishlists/:id" element={<ProtectedRoute><WishlistPage/></ProtectedRoute>} />
+        <Route path="/add-wishlist" element={<ProtectedRoute><AddWishlistPage/></ProtectedRoute>} />
+        <Route path="/shared" element={<ProtectedRoute><SharedWishlistsPage/></ProtectedRoute>} />
+      </Routes>
+    </div>
   );
 }
-
-export default App;
