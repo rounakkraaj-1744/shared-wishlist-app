@@ -1,65 +1,93 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import axios from "axios"
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
+    console.log("Session in GET /api/wishlists:", session)
 
-    if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 })
+    if (!session?.user?.token) {
+      console.log("No token found in session")
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      )
     }
 
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/wishlists`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.user.token}`,
-        },
-      }
-    )
+    const response = await fetch("http://localhost:8000/api/wishlists", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.user.token}`,
+      },
+    })
 
-    return NextResponse.json(response.data)
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.log("Backend error response:", data)
+      return NextResponse.json(
+        { message: data.message || "Failed to fetch wishlists" },
+        { status: response.status }
+      )
+    }
+
+    // Combine owned and shared wishlists into a single array
+    const allWishlists = [...data.owned, ...data.shared]
+    return NextResponse.json(allWishlists)
   } catch (error) {
-    console.error("Error fetching wishlists:", error)
-    if (axios.isAxiosError(error)) {
-      return new NextResponse(error.response?.data?.message || "Error fetching wishlists", {
-        status: error.response?.status || 500,
-      })
-    }
-    return new NextResponse("Internal Error", { status: 500 })
+    console.error("Error in GET /api/wishlists:", error)
+    return NextResponse.json(
+      { message: "Failed to fetch wishlists" },
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
+    console.log("Session in POST /api/wishlists:", session)
 
-    if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 })
+    if (!session?.user?.token) {
+      console.log("No token found in session")
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      )
     }
 
     const body = await request.json()
+    console.log("Request body:", body)
 
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/wishlists`,
-      body,
-      {
-        headers: {
-          Authorization: `Bearer ${session.user.token}`,
-        },
-      }
-    )
+    const response = await fetch("http://localhost:8000/api/wishlists", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.user.token}`,
+      },
+      body: JSON.stringify({
+        name: body.name,
+        description: body.description,
+      }),
+    })
 
-    return NextResponse.json(response.data)
-  } catch (error) {
-    console.error("Error creating wishlist:", error)
-    if (axios.isAxiosError(error)) {
-      return new NextResponse(error.response?.data?.message || "Error creating wishlist", {
-        status: error.response?.status || 500,
-      })
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.log("Backend error response:", data)
+      return NextResponse.json(
+        { message: data.message || "Failed to create wishlist" },
+        { status: response.status }
+      )
     }
-    return new NextResponse("Internal Error", { status: 500 })
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error("Error in POST /api/wishlists:", error)
+    return NextResponse.json(
+      { message: "Failed to create wishlist" },
+      { status: 500 }
+    )
   }
 } 

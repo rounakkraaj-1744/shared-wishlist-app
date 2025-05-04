@@ -3,7 +3,7 @@ import prisma from '../config/prisma.config';
 
 export const createWishlist = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name } = req.body;
+    const { name, description } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -19,6 +19,7 @@ export const createWishlist = async (req: Request, res: Response): Promise<void>
     const wishlist = await prisma.wishlist.create({
       data: {
         name,
+        description: description || "",
         ownerId: userId,
       },
       include: {
@@ -158,3 +159,45 @@ export const getWishlists = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const deleteWishlist = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    // Check if wishlist exists and user is the owner
+    const wishlist = await prisma.wishlist.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    if (!wishlist) {
+      res.status(404).json({ message: "Wishlist not found" });
+      return;
+    }
+
+    if (wishlist.ownerId !== userId) {
+      res.status(403).json({ message: "Only the owner can delete this wishlist" });
+      return;
+    }
+
+    // Delete the wishlist
+    await prisma.wishlist.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting wishlist:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+

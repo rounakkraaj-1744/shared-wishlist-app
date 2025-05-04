@@ -3,10 +3,6 @@ import { register, login, getUserWishlists } from "../controllers/user.controlle
 
 const router = express.Router()
 
-router.post("/signup", createUser)
-router.post("/login", loginUser)
-router.get("/:userId/wishlists", getUserWishlists)
-
 // Register a new user
 router.post("/register", register)
 

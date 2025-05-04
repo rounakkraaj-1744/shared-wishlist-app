@@ -8,15 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
-export default function SignIn() {
+export default function SignInPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     setIsLoading(true)
 
-    const formData = new FormData(e.currentTarget)
+    const formData = new FormData(event.currentTarget)
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
@@ -35,21 +35,25 @@ export default function SignIn() {
       router.push("/")
       router.refresh()
     } catch (error) {
-      toast.error("Something went wrong")
+      console.error("Sign in error:", error)
+      toast.error("An error occurred during sign in")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-8 rounded-lg border p-6 shadow-lg">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-muted-foreground">
-            Sign in to your account to continue
+    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your email and password to sign in
           </p>
         </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -57,7 +61,7 @@ export default function SignIn() {
               id="email"
               name="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="name@example.com"
               required
             />
           </div>
@@ -67,7 +71,6 @@ export default function SignIn() {
               id="password"
               name="password"
               type="password"
-              placeholder="Enter your password"
               required
             />
           </div>
@@ -75,16 +78,6 @@ export default function SignIn() {
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-        <div className="text-center text-sm">
-          Don't have an account?{" "}
-          <Button
-            variant="link"
-            className="p-0"
-            onClick={() => router.push("/auth/signup")}
-          >
-            Sign up
-          </Button>
-        </div>
       </div>
     </div>
   )

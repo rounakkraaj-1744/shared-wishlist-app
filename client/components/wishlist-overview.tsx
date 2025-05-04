@@ -1,59 +1,54 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Plus, Share2, Trash2 } from "lucide-react"
 import axios from "axios"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CreateWishlistDialog } from "./create-wishlist-dialog"
 
 interface Wishlist {
   id: string
   name: string
   description: string
   createdAt: string
-  items: {
-    id: string
-    name: string
-    price: number
-    status: "wanted" | "reserved" | "purchased"
-  }[]
+  updatedAt: string
 }
 
 export function WishlistOverview() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [wishlists, setWishlists] = useState<Wishlist[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
-  // Create axios instance with auth token
-  const api = axios.create({
-    baseURL: '/api',
-    headers: {
-      'Content-Type': 'application/json',
-    }
-  })
-
-  // Add request interceptor to include token
-  api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token') // or from cookies if you're using them
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  })
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   useEffect(() => {
-    fetchWishlists()
-  }, [])
+    console.log("Session status:", status)
+    console.log("Session data:", session)
+
+    if (status === "unauthenticated") {
+      router.push("/auth/signin")
+      return
+    }
+
+    if (status === "authenticated") {
+      fetchWishlists()
+    }
+  }, [status, session, router])
 
   const fetchWishlists = async () => {
     try {
-      const response = await api.get("/wishlists")
+      setIsLoading(true)
+      const response = await axios.get("/api/wishlists")
+      console.log("Wishlists response:", response.data)
       setWishlists(response.data)
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error("Please login to access your wishlists")
-        router.push('/auth/signin')
+      console.error("Error fetching wishlists:", error)
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Failed to fetch wishlists")
       } else {
         toast.error("Failed to fetch wishlists")
       }
@@ -62,18 +57,20 @@ export function WishlistOverview() {
     }
   }
 
-  const handleCreateWishlist = async () => {
+  const handleCreateWishlist = async (name: string, description: string) => {
     try {
-      const response = await api.post("/wishlists", {
-        name: "New Wishlist",
-        description: "A new wishlist",
+      console.log("Creating wishlist:", { name, description })
+      const response = await axios.post("/api/wishlists", {
+        name,
+        description,
       })
+      console.log("Create wishlist response:", response.data)
       setWishlists([...wishlists, response.data])
-      toast.success("Wishlist created")
+      toast.success("Wishlist created successfully")
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error("Please login to create a wishlist")
-        router.push('/auth/signin')
+      console.error("Error creating wishlist:", error)
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Failed to create wishlist")
       } else {
         toast.error("Failed to create wishlist")
       }
@@ -82,13 +79,13 @@ export function WishlistOverview() {
 
   const handleDeleteWishlist = async (id: string) => {
     try {
-      await api.delete(`/wishlists/${id}`)
-      setWishlists(wishlists.filter((w) => w.id !== id))
-      toast.success("Wishlist deleted")
+      await axios.delete(`/api/wishlists/${id}`)
+      setWishlists(wishlists.filter((wishlist) => wishlist.id !== id))
+      toast.success("Wishlist deleted successfully")
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error("Please login to delete this wishlist")
-        router.push('/auth/signin')
+      console.error("Error deleting wishlist:", error)
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Failed to delete wishlist")
       } else {
         toast.error("Failed to delete wishlist")
       }
@@ -96,90 +93,63 @@ export function WishlistOverview() {
   }
 
   const handleShareWishlist = (id: string) => {
-    const url = `${window.location.origin}/wishlist/${id}`
-    navigator.clipboard.writeText(url)
+    const shareUrl = `${window.location.origin}/wishlist/${id}`
+    navigator.clipboard.writeText(shareUrl)
     toast.success("Wishlist link copied to clipboard")
   }
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return <div>Loading...</div>
   }
 
+  if (status === "unauthenticated") {
+    return null
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">My Wishlists</h1>
-        <Button onClick={handleCreateWishlist}>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Wishlist
+          Create Wishlist
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {wishlists.map((wishlist) => (
-          <div
-            key={wishlist.id}
-            className="rounded-lg border p-6 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-semibold">{wishlist.name}</h2>
-                <p className="text-muted-foreground mt-1">
-                  {wishlist.description}
-                </p>
-              </div>
-              <div className="flex gap-2">
+          <Card key={wishlist.id}>
+            <CardHeader>
+              <CardTitle>{wishlist.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">{wishlist.description}</p>
+              <div className="flex justify-end space-x-2">
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleShareWishlist(wishlist.id)}
                 >
                   <Share2 className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="destructive"
+                  size="sm"
                   onClick={() => handleDeleteWishlist(wishlist.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">
-                {wishlist.items.length} items
-              </p>
-              <div className="mt-2 space-y-2">
-                {wishlist.items.slice(0, 3).map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span>{item.name}</span>
-                    <span className="font-medium">
-                      ${item.price.toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-                {wishlist.items.length > 3 && (
-                  <p className="text-sm text-muted-foreground">
-                    +{wishlist.items.length - 3} more items
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              className="mt-4 w-full"
-              onClick={() => router.push(`/wishlist/${wishlist.id}`)}
-            >
-              View Details
-            </Button>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
+
+      <CreateWishlistDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreateWishlist}
+      />
     </div>
   )
 } 

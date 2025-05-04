@@ -21,18 +21,20 @@ model User {
 model Wishlist {
   id              Int             @id @default(autoincrement())
   name            String
+  description     String        @default("")
   ownerId         Int
-  owner           User            @relation("OwnedWishlists", fields: [ownerId], references: [id])
-  products        Product[]
-  members         WishlistUser[]
+  owner           User            @relation("OwnedWishlists", fields: [ownerId], references: [id], onDelete: Cascade)
+  products        Product[]        @relation("WishlistProducts")
+  members         WishlistUser[]  @relation("WishlistMembers")
   createdAt       DateTime        @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
 model WishlistUser {
   id              Int         @id @default(autoincrement())
-  user            User        @relation(fields: [userId], references: [id])
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          Int
-  wishlist        Wishlist    @relation(fields: [wishlistId], references: [id])
+  wishlist        Wishlist    @relation("WishlistMembers", fields: [wishlistId], references: [id], onDelete: Cascade)
   wishlistId      Int
 }
 
@@ -43,7 +45,7 @@ model Product {
   price           Float
   addedById       Int
   wishlistId      Int
-  addedBy         User        @relation(fields: [addedById], references: [id])
-  wishlist        Wishlist    @relation(fields: [wishlistId], references: [id])
+  addedBy         User        @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  wishlist        Wishlist    @relation("WishlistProducts", fields: [wishlistId], references: [id], onDelete: Cascade)
   createdAt       DateTime    @default(now())
 }
