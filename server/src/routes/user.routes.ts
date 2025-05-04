@@ -1,8 +1,19 @@
-import express from 'express';
-import { createUser } from '../controllers/user.controller';
-const router = express.Router();
+import express from "express"
+import { register, login, getUserWishlists } from "../controllers/user.controller"
 
-router.post('/signup', createUser);
+const router = express.Router()
 
+router.post("/signup", createUser)
+router.post("/login", loginUser)
+router.get("/:userId/wishlists", getUserWishlists)
 
-export default router;
+// Register a new user
+router.post("/register", register)
+
+// Login user
+router.post("/login", login)
+
+// Get user's wishlists
+router.get("/:userId/wishlists", getUserWishlists)
+
+export default router
